@@ -2,28 +2,26 @@ import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import col, delete, func, select
+from sqlmodel import func, select
 
 from app.api.deps import (
     CurrentUser,
     SessionDep,
     get_current_active_superuser,
 )
-from app.domain.users import service as user_service
-from app.core.config import settings
-from app.core.security import get_password_hash, verify_password
-from app.models import (
-    Item,
-    Message,
-    UpdatePassword,
-    User,
+from app.features.users.domain import services as user_service
+from app.features.users.models import User
+from app.features.users.schemas.requests import (
     UserCreate,
-    UserPublic,
     UserRegister,
-    UsersPublic,
     UserUpdate,
     UserUpdateMe,
+    UpdatePassword,
 )
+from app.features.users.schemas.responses import UserPublic, UsersPublic
+from app.features.auth.schemas.responses import Message
+from app.core.config import settings
+from app.core.security import get_password_hash, verify_password
 from app.utils import generate_new_account_email, send_email
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -221,8 +219,6 @@ async def delete_user(
         raise HTTPException(
             status_code=403, detail="Super users are not allowed to delete themselves"
         )
-    statement = delete(Item).where(col(Item.owner_id) == user_id)
-    await session.exec(statement)  # type: ignore
     session.delete(user)
     await session.commit()
     return Message(message="User deleted successfully")
